@@ -1,0 +1,60 @@
+version: "3"
+services:
+
+  redis:
+    image: redis:5.0.5
+    container_name: redis_microsservico
+    hostname: redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - basenet
+
+  db:
+    image: postgres:11
+    container_name: pg_microsservico
+    ports:
+      - 54321:5432
+    volumes:
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/db.sql
+      - ./postgres:/var/lib/postgresql/data
+    networks:
+      - basenet
+    depends_on:
+      - redis
+
+  web:
+    build: ./src
+    command: gunicorn --bind 0.0.0.0:8000 --max-requests 10000 --timeout 1000 --log-file=- -w 6 microsservico.wsgi 
+    env_file:
+      - ./dockerenv/dev.env
+    restart: always
+    container_name: django_microsservico
+    volumes:
+      - ./src:/app/src
+    ports:
+      - 8000:8000
+    networks:
+      - basenet
+    depends_on:
+      - db
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_microsservico
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - 16543:80
+    depends_on:
+      - db
+    networks:
+      - basenet
+
+networks:
+  basenet:
+
+volumes:
+  postgres_data:
+  redis_data:

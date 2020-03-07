@@ -1,0 +1,4 @@
+#!/bin/bash
+pkill -9 -f runserver
+find . -name "*.pyc" -type f -delete
+gunicorn -w 5 --threads=4 -b 0.0.0.0:8001 microsservico.wsgi:application --reload --timeout 900
